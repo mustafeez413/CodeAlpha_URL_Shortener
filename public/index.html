@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>URL Shortener</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7fafc;
+      color: #1f2937;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+    .container {
+      max-width: 520px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+      padding: 32px;
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+    p {
+      margin: 0 0 24px;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+    form {
+      display: grid;
+      gap: 12px;
+    }
+    input[type="url"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 16px;
+    }
+    button {
+      padding: 14px 16px;
+      border: none;
+      border-radius: 12px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #93c5fd;
+      cursor: default;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 18px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+    .result a {
+      color: #2563eb;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .error {
+      color: #b91c1c;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>URL Shortener</h1>
+    <p>Enter a long URL and get a short link you can share instantly.</p>
+    <form id="shortenForm">
+      <input id="longUrl" type="url" placeholder="https://example.com/very/long/url" required />
+      <button type="submit">Create short URL</button>
+    </form>
+    <div id="message" class="error" role="alert"></div>
+    <div id="result" class="result" hidden>
+      <p><strong>Original URL:</strong></p>
+      <p id="originalUrl"></p>
+      <p><strong>Short URL:</strong></p>
+      <p><a id="shortUrl" href="#" target="_blank" rel="noopener"></a></p>
+    </div>
+  </div>
+  <script>
+    const form = document.getElementById('shortenForm');
+    const longUrlInput = document.getElementById('longUrl');
+    const message = document.getElementById('message');
+    const result = document.getElementById('result');
+    const originalUrl = document.getElementById('originalUrl');
+    const shortUrl = document.getElementById('shortUrl');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      message.textContent = '';
+      result.hidden = true;
+      const longUrl = longUrlInput.value.trim();
+      if (!longUrl) {
+        message.textContent = 'Please enter a valid URL.';
+        return;
+      }
+
+      form.querySelector('button').disabled = true;
+      form.querySelector('button').textContent = 'Shortening...';
+
+      try {
+        const apiUrl = 'http://127.0.0.1:5000/api/shorten';
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ longUrl }),
+          mode: 'cors',
+        });
+
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text || '{}');
+        } catch (parseError) {
+          throw new Error(`Invalid JSON response: ${text}`);
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || `Failed to shorten URL (${response.status})`);
+        }
+
+        originalUrl.textContent = data.longUrl;
+        shortUrl.textContent = data.shortUrl;
+        shortUrl.href = data.shortUrl;
+        result.hidden = false;
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        form.querySelector('button').disabled = false;
+        form.querySelector('button').textContent = 'Create short URL';
+      }
+    });
+  </script>
+</body>
+</html>
